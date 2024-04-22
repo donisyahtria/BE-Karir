@@ -1,0 +1,410 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Karyawan {
+  id               Int      @id @default(autoincrement())
+  nippos           String   @unique @db.Char(9)
+  nama             String   @db.VarChar(255)
+  id_level_jabatan Int
+  tempat_lahir     String?  @db.VarChar(255)
+  tanggal_lahir    DateTime @db.Date
+  tanggal_sumpah   DateTime @db.Date
+  kode_jiwa        String?  @db.Char(3)
+  jenis_kelamin    String?  @db.Char(1)
+  status_kerja     Int
+  email            String?  @db.VarChar(255)
+
+  mutasinippos      Mutasi[]
+  talentnippos      Talent[]
+  ipnippos          Individual_Performance[]
+  penghargaannippos Penghargaan[]
+  ecpnippos         ECP[]
+  pelatihannippos   Pelatihan[]
+  scnippos          Sosio_Kontributor[]
+  leadnippos        Kompetensi_Leadership_Karyawan[]
+  hsnippos          Kompetensi_HardSoft_Karyawan[]
+
+  RelasiNipposAtasan    MCP[] @relation("NipposAtasan")
+  RelasiNipposBawahan   MCP[] @relation("NipposBawahan")
+  RelasiNipposUser      SCP[] @relation("NipposUser")
+  RelasiNipposSuccessor SCP[] @relation("NipposSuccessor")
+
+  LJKaryawan Referensi_Level_Jabatan @relation(fields: [id_level_jabatan], references: [kode_level_jabatan])
+}
+
+model Mutasi {
+  id                Int      @id @default(autoincrement())
+  kode_mutasi       Int      @unique
+  nippos            String   @db.Char(9)
+  id_jabatan_tujuan Int
+  id_jenis_mutasi   Int //belum ada relasi --> referensi mutasi
+  id_level_jabatan  Int
+  tanggal_skep      DateTime @db.Date
+  nomor_skep        String   @db.VarChar(255)
+  tmt_skep          DateTime @db.Date
+  crt               String   @db.Char(1)
+  keterangan        String?  @db.VarChar(255)
+  tanggal_pengisian DateTime @db.Date
+
+  mutasinippos Karyawan                @relation(fields: [nippos], references: [nippos])
+  tujuannippos Jabatan_Kantor          @relation(fields: [id_jabatan_tujuan], references: [kode_jabatan_kantor])
+  LJ           Referensi_Level_Jabatan @relation(fields: [id_level_jabatan], references: [kode_level_jabatan])
+}
+
+model Jabatan_Kantor {
+  id                  Int     @id @default(autoincrement())
+  kode_jabatan_kantor Int     @unique
+  id_jabatan_org      Int
+  nopend              String? @db.Char(7)
+
+  tujuannippos Mutasi[]
+
+  jabatanorganisasi Jabatan_Bagian    @relation(fields: [id_jabatan_org], references: [kode_jabatan_bagian])
+  nopendkantor      Referensi_Kantor? @relation(fields: [nopend], references: [nopend])
+}
+
+model Jabatan_Bagian {
+  id                  Int    @id @default(autoincrement())
+  kode_jabatan_bagian Int    @unique
+  kode_bagian         String @db.Char(7)
+  kode_jabatan        String @db.Char(7)
+  id_level_jabatan    Int
+
+  jabatanorganisasi Jabatan_Kantor[]
+  jabatanecp        ECP[]
+  jabatanmcp        MCP[]
+  jabatanlead       Kompetensi_Leadership_Jabatan[]
+  jabatanhs         Kompetensi_HardSoft_Jabatan[]
+
+  bagian  Referensi_Bagian        @relation(fields: [kode_bagian], references: [kode_bagian])
+  jabatan Referensi_Jabatan       @relation(fields: [kode_jabatan], references: [kode_jabatan])
+  LJ      Referensi_Level_Jabatan @relation(fields: [id_level_jabatan], references: [kode_level_jabatan])
+}
+
+model Referensi_Jabatan {
+  id           Int    @id @default(autoincrement())
+  kode_jabatan String @unique @db.Char(7)
+  nama_jabatan String @db.VarChar(255)
+  status       String @db.Char(1)
+
+  JabatanBagian Jabatan_Bagian[]
+}
+
+model Referensi_Bagian {
+  id          Int    @id @default(autoincrement())
+  kode_bagian String @unique @db.Char(7)
+  nama_bagian String @db.VarChar(255)
+  status      String @db.Char(1)
+  id_rumpun   Int
+
+  JabatanBagian Jabatan_Bagian[]
+  Rumpun        Referensi_Rumpun @relation(fields: [id_rumpun], references: [kode_rumpun])
+}
+
+model Referensi_Kantor {
+  id              Int    @id @default(autoincrement())
+  nopend          String @unique @db.Char(7)
+  nama_kantor     String @db.VarChar(255)
+  id_kelas_kantor Int //belum ada referensi --> tabel referensi id kelas kantor
+  id_wilayah      Int
+  status          String @db.Char(1)
+
+  nopendkantor Jabatan_Kantor[]
+
+  KodeWilayah Referensi_Wilayah @relation(fields: [id_wilayah], references: [kode_wilayah])
+}
+
+model Referensi_Level_Jabatan {
+  id                 Int    @id @default(autoincrement())
+  kode_level_jabatan Int    @unique
+  nama_LJ            String @db.Char(2)
+  ranking            Int
+
+  LJKaryawan      Karyawan[]
+  LJMutasi        Mutasi[]
+  LJJabatanBagian Jabatan_Bagian[]
+}
+
+model Referensi_Rumpun {
+  id          Int    @id @default(autoincrement())
+  kode_rumpun Int    @unique
+  nama_rumpun String @db.VarChar(255)
+
+  TableBagian        Referensi_Bagian[]
+  rumpuntalent       Talent[]
+  RelasiRumpunAsal   Risiko_Rumpun[]    @relation("RumpunAsal")
+  RelasiRumpunTujuan Risiko_Rumpun[]    @relation("RumpunTujuan")
+}
+
+model Referensi_Wilayah {
+  id           Int    @id @default(autoincrement())
+  kode_wilayah Int    @unique
+  nama_wilayah String @db.VarChar(255)
+
+  Kantor Referensi_Kantor[]
+}
+
+model Talent {
+  id             Int      @id @default(autoincrement())
+  nippos         String   @db.Char(9)
+  id_rumpun      Int
+  status         String   @db.Char(1)
+  jenis_talent   Int
+  berlaku_mulai  DateTime @db.Date
+  berlaku_hingga DateTime @db.Date
+
+  nipposkaryawan Karyawan         @relation(fields: [nippos], references: [nippos])
+  rumpuntalent   Referensi_Rumpun @relation(fields: [id_rumpun], references: [kode_rumpun])
+}
+
+model Individual_Performance {
+  id       Int      @id @default(autoincrement())
+  nippos   String   @db.Char(9)
+  skor_nki Int
+  tahun    DateTime @db.Date
+
+  nipposip Karyawan @relation(fields: [nippos], references: [nippos])
+}
+
+model Penghargaan {
+  id                    Int    @id @default(autoincrement())
+  nippos                String @db.Char(9)
+  nama_penghargaan      String @db.VarChar(255)
+  jenis_penghargaan     Int
+  level_penghargaan     Int
+  lembaga_penyelenggara String @db.VarChar(255)
+
+  nippospenghargaan Karyawan                    @relation(fields: [nippos], references: [nippos])
+  jenispenghargaan  Referensi_Jenis_Penghargaan @relation(fields: [jenis_penghargaan], references: [kode_jenis_penghargaan])
+  levelpenghargaan  Referensi_Level_Penghargaan @relation(fields: [level_penghargaan], references: [kode_level_penghargaan])
+}
+
+model Referensi_Jenis_Penghargaan {
+  id                     Int    @id @default(autoincrement())
+  kode_jenis_penghargaan Int    @unique
+  nama_jenis_penghargaan String @db.VarChar(255)
+
+  jenispenghargaan Penghargaan[]
+}
+
+model Referensi_Level_Penghargaan {
+  id                     Int    @id @default(autoincrement())
+  kode_level_penghargaan Int    @unique
+  nama_level_penghargaan String @db.VarChar(255)
+
+  levelpenghargaan Penghargaan[]
+}
+
+model ECP {
+  id                  Int      @id @default(autoincrement())
+  id_event            Int
+  nippos              String   @db.Char(9)
+  jenis_aspirasi      Int // ini isinya cuma string rotasi dan promosi
+  id_jabatan_aspirasi Int
+  tanggal_pengisian   DateTime @db.Date
+
+  nipposecp       Karyawan       @relation(fields: [nippos], references: [nippos])
+  jabatanaspirasi Jabatan_Bagian @relation(fields: [id_jabatan_aspirasi], references: [kode_jabatan_bagian])
+}
+
+model MCP {
+  id                  Int      @id @default(autoincrement())
+  id_event            Int
+  nippos_atasan       String   @db.Char(9)
+  nippos_bawahan      String   @db.Char(9)
+  jenis_aspirasi      Int // ini isinya cuma string rotasi dan promosi
+  id_jabatan_aspirasi Int
+  tanggal_pengisian   DateTime @db.Date
+
+  nipposatasan    Karyawan       @relation("NipposAtasan", fields: [nippos_atasan], references: [nippos])
+  nipposbawahan   Karyawan       @relation("NipposBawahan", fields: [nippos_bawahan], references: [nippos])
+  jabatanaspirasi Jabatan_Bagian @relation(fields: [id_jabatan_aspirasi], references: [kode_jabatan_bagian])
+}
+
+model SCP {
+  id                Int      @id @default(autoincrement())
+  id_event          Int
+  nippos            String   @db.Char(9)
+  nippos_successor  String   @db.Char(9)
+  jenis_aspirasi    Int // ini isinya cuma string rotasi dan promosi
+  tanggal_pengisian DateTime @db.Date
+
+  nipposuser      Karyawan @relation("NipposUser", fields: [nippos], references: [nippos])
+  nippossuccessor Karyawan @relation("NipposSuccessor", fields: [nippos_successor], references: [nippos])
+}
+
+model Pelatihan {
+  id              Int      @id @default(autoincrement())
+  nippos          String   @db.Char(9)
+  nama_pelatihan  String   @db.VarChar(255)
+  jenis_pelatihan Int // belum ada referensi --> referensi jenis pelatihan
+  nilai_pelatihan Int? // belum ada referensi --> referensi jenis pelatihan
+  tanggal_mulai   DateTime @db.Date
+  tanggal_selesai DateTime @db.Date
+
+  nippospelatihan Karyawan @relation(fields: [nippos], references: [nippos])
+}
+
+model Risiko_Rumpun {
+  id               Int @id @default(autoincrement())
+  id_rumpun_asal   Int
+  id_rumpun_tujuan Int
+  id_risiko        Int
+
+  rumpunasal   Referensi_Rumpun @relation("RumpunAsal", fields: [id_rumpun_asal], references: [kode_rumpun])
+  rumpuntujuan Referensi_Rumpun @relation("RumpunTujuan", fields: [id_rumpun_tujuan], references: [kode_rumpun])
+  koderisiko   Referensi_Risiko @relation(fields: [id_risiko], references: [kode_risiko])
+}
+
+model Referensi_Risiko {
+  id             Int    @id @default(autoincrement())
+  kode_risiko    Int    @unique
+  tingkat_risiko String @db.VarChar(255)
+
+  risikorumpun Risiko_Rumpun[]
+}
+
+model Sosio_Kontributor {
+  id                      Int      @id @default(autoincrement())
+  nippos                  String   @db.Char(9)
+  nama_sosio_kontributor  String   @db.VarChar(25)
+  level_sosio_kotributor  Int
+  jenis_sosio_kontributor Int
+  tanggal_pengisian       DateTime @db.Date
+  validasi                Boolean
+
+  nippossc Karyawan                @relation(fields: [nippos], references: [nippos])
+  levelsc  Level_Sosio_Kontributor @relation(fields: [level_sosio_kotributor], references: [kode_level_sc])
+  jenissc  Jenis_Sosio_Kontributor @relation(fields: [jenis_sosio_kontributor], references: [kode_jenis_sc])
+}
+
+model Jenis_Sosio_Kontributor {
+  id               Int    @id @default(autoincrement())
+  kode_jenis_sc    Int    @unique
+  nama_jenis_sosio String @db.VarChar(255)
+
+  jenissc Sosio_Kontributor[]
+}
+
+model Level_Sosio_Kontributor {
+  id               Int    @id @default(autoincrement())
+  kode_level_sc    Int    @unique
+  nama_level_sosio String @db.VarChar(255)
+
+  levelsc Sosio_Kontributor[]
+}
+
+model Parameter_Karir {
+  id             Int    @id @default(autoincrement())
+  kode_parameter Int    @unique
+  nama_paramter  String @db.VarChar(255)
+  bobot          Float
+  nilaimax       Int
+
+  aspekkarir Aspek_Karir[]
+}
+
+model Aspek_Karir {
+  id          Int    @id @default(autoincrement())
+  kode_aspek  Int    @unique
+  nama_aspek  String @db.VarChar(255)
+  id_paramter Int
+
+  idparameter Parameter_Karir @relation(fields: [id_paramter], references: [kode_parameter])
+}
+
+model Kompetensi_Leadership_Karyawan {
+  id             Int      @id @default(autoincrement())
+  id_kompetensi  Int
+  nippos         String   @db.Char(9)
+  id_skor        Int
+  berlaku_mulai  DateTime @db.Date
+  berlaku_hingga DateTime @db.Date
+
+  idkompetensi Direktori_Kompetensi_Lead @relation(fields: [id_kompetensi], references: [kode_kompetensi_lead])
+  nipposlead   Karyawan                  @relation(fields: [nippos], references: [nippos])
+  idskor       Direktori_Skor_Lead       @relation(fields: [id_skor], references: [kode_skor])
+}
+
+model Kompetensi_HardSoft_Karyawan {
+  id             Int      @id @default(autoincrement())
+  id_kompetensi  Int
+  nippos         String   @db.Char(9)
+  id_skor        Int
+  berlaku_mulai  DateTime @db.Date
+  berlaku_hingga DateTime @db.Date
+
+  idkompetensi Direktori_Kompetensi_HardSoft @relation(fields: [id_kompetensi], references: [kode_kompetensi_hs])
+  nipposhs     Karyawan                      @relation(fields: [nippos], references: [nippos])
+  idskor       Direktori_Skor_HardSoft       @relation(fields: [id_skor], references: [kode_skor])
+}
+
+model Kompetensi_Leadership_Jabatan {
+  id             Int @id @default(autoincrement())
+  id_kompetensi  Int
+  id_jabatan_org Int
+  id_skor        Int
+
+  idkompetensi Direktori_Kompetensi_Lead @relation(fields: [id_kompetensi], references: [kode_kompetensi_lead])
+  idjabatan    Jabatan_Bagian            @relation(fields: [id_jabatan_org], references: [kode_jabatan_bagian])
+  idskor       Direktori_Skor_Lead       @relation(fields: [id_skor], references: [kode_skor])
+}
+
+model Kompetensi_HardSoft_Jabatan {
+  id             Int @id @default(autoincrement())
+  id_kompetensi  Int
+  id_jabatan_org Int
+  id_skor        Int
+
+  idkompetensi Direktori_Kompetensi_HardSoft @relation(fields: [id_kompetensi], references: [kode_kompetensi_hs])
+  idjabatan    Jabatan_Bagian                @relation(fields: [id_jabatan_org], references: [kode_jabatan_bagian])
+  idskor       Direktori_Skor_HardSoft       @relation(fields: [id_skor], references: [kode_skor])
+}
+
+model Direktori_Kompetensi_HardSoft {
+  id                 Int    @id @default(autoincrement())
+  kode_kompetensi_hs Int    @unique
+  nama_kompetensi    String @db.VarChar(255)
+  jenis_kompetensi   Int
+  deskripsi          String @db.VarChar(255)
+
+  kodekompetensi   Kompetensi_HardSoft_Karyawan[]
+  kodekompetensihs Kompetensi_HardSoft_Jabatan[]
+}
+
+model Direktori_Kompetensi_Lead {
+  id                   Int    @id @default(autoincrement())
+  kode_kompetensi_lead Int    @unique
+  nama_kompetensi      String @db.VarChar(255)
+  deskripsi            String @db.VarChar(255)
+
+  kodekompetensi        Kompetensi_Leadership_Karyawan[]
+  kodekompetensijabatan Kompetensi_Leadership_Jabatan[]
+}
+
+model Direktori_Skor_HardSoft {
+  id        Int    @id @default(autoincrement())
+  kode_skor Int    @unique
+  deskripsi String @db.VarChar(255)
+
+  kodeskor   Kompetensi_HardSoft_Karyawan[]
+  kodeskorhs Kompetensi_HardSoft_Jabatan[]
+}
+
+model Direktori_Skor_Lead {
+  id        Int    @id @default(autoincrement())
+  kode_skor Int    @unique
+  deskripsi String @db.VarChar(255)
+
+  kodeskor     Kompetensi_Leadership_Karyawan[]
+  kodeskorlead Kompetensi_Leadership_Jabatan[]
+}
