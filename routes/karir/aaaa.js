@@ -3,9 +3,9 @@ import express from "express";
 
 const router = express.Router();
 
-router.post("/updateskordays", async (req, res) => {
+router.post("/aaaa", async (req, res) => {
   try {
-    res.status(200).json({ masukSkorDays });
+    res.status(200).json({ aaaa });
   } catch (err) {
     console.log({ err });
     res.status(500).json({ message: "Internal server error", err });

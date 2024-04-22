@@ -1,6 +1,7 @@
 import express from "express";
 import bodyParser, { json } from "body-parser";
 import cors from "cors";
+import aaaa from "./routes/karir/aaaa"
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -13,6 +14,8 @@ app.use(cors({
         credentials:true
     })
 );
+
+app.use("/", aaaa)
 
 app.listen(port, () => {
     console.log(`server running on port ${port}`);
